@@ -10,7 +10,7 @@ pygame.init()
 # Postavke prozora
 width, height = 1200, 600
 screen = pygame.display.set_mode((width, height))
-pygame.display.set_caption("Simulacija čekanja pacijenata")
+pygame.display.set_caption("Optimizacija rada čekanja u zdravstvu")
  
 # Boje
 white = (255, 255, 255)
@@ -54,6 +54,7 @@ def izvrsi_pregled(pacijent, trajanje):
         # Povećaj brojač pregledanih običnih pacijenata
         global pregledani_obicni
         pregledani_obicni += 1
+ 
 # Glavna petlja igre
 clock = pygame.time.Clock()
  
@@ -62,6 +63,9 @@ vrijeme_pojave_obicnih = 0
 vrijeme_pregleda_obicnih = 0
 vrijeme_pojave_hitnih = 0
 vrijeme_pregleda_hitnih = 0
+ 
+# Zastava koja označava je li trenutno hitan slučaj u tijeku
+hitni_slucaj_u_tijeku = False
  
 while True:
     for event in pygame.event.get():
@@ -73,7 +77,7 @@ while True:
     vrijeme_pojave_obicnih += 1
     vrijeme_pojave_hitnih += 1
  
-    if vrijeme_pojave_obicnih >=  random.randint(100, 500):
+    if vrijeme_pojave_obicnih >= random.randint(50, 1000):
         vrijeme_pojave_obicnih = 0
         ime = faker.first_name()
         prezime = faker.last_name()
@@ -108,9 +112,9 @@ while True:
         brojac_rednog_broja_hitni += 1
  
     # Provjerava i označava gotove pacijente (obični pacijenti)
-    if red_pacijenata:
+    if red_pacijenata and not hitni_slucaj_u_tijeku:
         pacijent = red_pacijenata[0]
-        if not pacijent["gotov"] and vrijeme_pregleda_obicnih >= 100:  
+        if not pacijent["gotov"] and vrijeme_pregleda_obicnih >= 100:
             izvrsi_pregled(pacijent, 3)
             vrijeme_pregleda_obicnih = 0
         elif not pacijent["gotov"]:
@@ -119,15 +123,21 @@ while True:
     # Provjerava i označava gotove pacijente (hitni slučajevi)
     if red_pacijenata_hitni:
         pacijent_hitni = red_pacijenata_hitni[0]  # Uzmi prvog hitnog pacijenta u redu
-        if not pacijent_hitni["gotov"] and vrijeme_pregleda_hitnih >=300:
+        if not pacijent_hitni["gotov"] and vrijeme_pregleda_hitnih >= 300:
             izvrsi_pregled(pacijent_hitni, 5)
             vrijeme_pregleda_hitnih = 0
+            # Ako je završen hitan slučaj, postavi zastavu na False
+            hitni_slucaj_u_tijeku = False
         elif not pacijent_hitni["gotov"]:
             vrijeme_pregleda_hitnih += 1
+            # Ako je započet pregled hitnog slučaja, postavi zastavu na True
+            hitni_slucaj_u_tijeku = True
  
     # Ukloni gotove pacijente nakon određenog vremena
-    red_pacijenata = [p for p in red_pacijenata if not p["gotov"] or (p["gotov"] and (datetime.now() - p["vrijeme_zavrsetka"]).total_seconds() < 1)]
-    red_pacijenata_hitni = [p for p in red_pacijenata_hitni if not p["gotov"] or (p["gotov"] and (datetime.now() - p["vrijeme_zavrsetka"]).total_seconds() < 1)]
+    red_pacijenata = [p for p in red_pacijenata if not p["gotov"] or
+                      (p["gotov"] and (datetime.now() - p["vrijeme_zavrsetka"]).total_seconds() < 1)]
+    red_pacijenata_hitni = [p for p in red_pacijenata_hitni if not p["gotov"] or
+                            (p["gotov"] and (datetime.now() - p["vrijeme_zavrsetka"]).total_seconds() < 1)]
  
     # Crta pozadinu
     screen.fill(white)
@@ -137,7 +147,7 @@ while True:
     font_table_header_hitni = pygame.font.Font(None, 28)
  
     # Crta naziv tablice (Manje bolesti pacijenti) s povećanim fontom
-    header_text_obicni = font_table_header_obicni.render("Manje bolesti pacijenti", True, black)
+    header_text_obicni = font_table_header_obicni.render("Manje bolesni pacijenti", True, black)
     screen.blit(header_text_obicni, (50, 30))
  
     # Crta naziv tablice (HITNI SLUČAJ) s povećanim fontom
@@ -156,7 +166,7 @@ while True:
     )
     screen.blit(header_text_emergency, (600, 73))
  
-   # Prikaz broja pregledanih pacijenata
+    # Prikaz broja pregledanih pacijenata
     font_brojac = pygame.font.Font(None, 24)
  
     # Tekst za "Pregledano->"
@@ -164,7 +174,6 @@ while True:
  
     # Tekst za preostali dio
     screen.blit(font_brojac.render(f"Manje bolesni pacijenti: {pregledani_obicni}  |  Hitni slučajevi: {pregledani_hitni}", True, black), (180, height - 30))
- 
  
     # Crta redove pacijenata u tablici (obični pacijenti)
     for i, pacijent in enumerate(red_pacijenata):
@@ -231,3 +240,4 @@ while True:
  
     # Postavlja broj sličica u sekundi (FPS)
     clock.tick(30)
+ 
